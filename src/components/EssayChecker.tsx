@@ -119,14 +119,14 @@ The primary argument against allowing prisoners the right to vote, which often i
       <div className="flex h-[calc(100vh-80px)]">
         {/* Essay Input Section */}
         <div className="flex-1 p-6 border-r border-border">
-          {/* FIXED: Back button - Now properly navigates to Assignment page */}
-          <div 
-            className="mb-4 flex items-center cursor-pointer hover:text-primary transition-colors" 
+          {/* FIXED: Back button - Now properly navigates to Assignment page with improved styling */}
+          <button 
             onClick={handleBackToAssignment}
+            className="mb-4 flex items-center gap-2 bg-transparent border-none p-2 -ml-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer group"
           >
-            <ChevronLeft className="w-5 h-5 text-muted-foreground mr-2" />
-            <span className="text-sm text-muted-foreground">Back to Assignment</span>
-          </div>
+            <ChevronLeft className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">Back to Assignment</span>
+          </button>
           
           <div className="mb-6">
             <Textarea
