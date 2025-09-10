@@ -91,7 +91,7 @@ The primary argument against allowing prisoners the right to vote, which often i
 
   // FIXED: Back button handler - navigates directly to Assignment page instead of browser history
   const handleBackToAssignment = () => {
-    navigate('/assignment'); // Direct navigation to Assignment page
+    navigate('/assignment/:id'); // Direct navigation to Assignment page
   };
 
   const positiveFeedback = feedback.filter(item => item.type === 'positive');
