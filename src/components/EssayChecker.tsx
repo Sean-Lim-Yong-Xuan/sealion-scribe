@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -11,7 +12,8 @@ interface FeedbackItem {
 }
 
 const EssayChecker = () => {
-  const [essay, setEssay] = useState(`The history of our nation is fraught with battles over people's rights, and the right to vote is foremost among them. The right to vote is linked to many other significant rights and principles, such as that of equality and justice. It should not be denied to eligible citizens, including those who have infringed on the rights of others.
+  const navigate = useNavigate();
+  const [essay, setEssay] = useState(`The history of our nation is fraught with battles over people's rights, and the right to vote is foremost among them. The right to vote is linked to many other significant rights and principles, such of that of equality and justice. It should not be denied to eligible citizens, including those who have infringed on the rights of others.
 
 Prisoners should be allowed the right to vote, as this right is crucial to our classification as a democracy. The primary argument denying prisoners this right is based on a gross generalization, and denies their standing as citizens of the state.
 
@@ -112,7 +114,8 @@ The primary argument against allowing prisoners the right to vote, which often i
       <div className="flex h-[calc(100vh-80px)]">
         {/* Essay Input Section */}
         <div className="flex-1 p-6 border-r border-border">
-          <div className="mb-4 flex items-center">
+          {/* Back button - Fixed: Added proper navigation functionality using useNavigate hook instead of non-functional display-only element */}
+          <div className="mb-4 flex items-center cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(-1)}>
             <ChevronLeft className="w-5 h-5 text-muted-foreground mr-2" />
             <span className="text-sm text-muted-foreground">Back</span>
           </div>
