@@ -1,7 +1,7 @@
-import EssayChecker from "@/components/EssayChecker";
+import SignUp from "./SignUp";
 
 const Index = () => {
-  return <EssayChecker />;
+  return <SignUp />;
 };
 
 export default Index;
