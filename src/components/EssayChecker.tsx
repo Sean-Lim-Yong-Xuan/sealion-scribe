@@ -62,6 +62,11 @@ The primary argument against allowing prisoners the right to vote, which often i
     navigate('/assignment/:id'); // Direct navigation to Assignment page
   };
 
+  // FIXED: Home button handler - navigates to dashboard
+  const handleHomeToDashboard = () => {
+    navigate('/dashboard');
+  };
+
   const positiveFeedback = feedback.filter(item => item.type === 'positive');
   const negativeFeedback = feedback.filter(item => item.type === 'negative');
 
@@ -71,7 +76,8 @@ The primary argument against allowing prisoners the right to vote, which often i
       <header className="bg-primary text-primary-foreground px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Home className="w-6 h-6" />
+            <Home className="w-6 h-6 cursor-pointer hover:text-accent transition-colors" 
+              onClick={handleHomeToDashboard}/>
             <h1 className="text-xl font-semibold">Checkit ✓</h1>
           </div>
           <div className="flex items-center gap-4">
