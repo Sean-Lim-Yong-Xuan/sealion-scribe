@@ -5,14 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-<<<<<<< HEAD
-import { Home, Globe, Settings, User, Upload, Check, X, Plus } from "lucide-react";
-import DocumentUpload from "@/components/DocumentUpload";
-import { useI18n } from "@/lib/i18n";
-=======
 import { Textarea } from "@/components/ui/textarea";
 import { Home, Globe, Settings, User, Upload, Check, X, Plus, FileText, UserPlus } from "lucide-react";
->>>>>>> 3ccec58c49de62bc367bf7790123e5d88c280b7c
+import DocumentUpload from "@/components/DocumentUpload";
+import { useI18n } from "@/lib/i18n";
 
 interface Student {
   id: string;
@@ -27,11 +23,8 @@ const Assignment = () => {
   const { id } = useParams();
   const { t } = useI18n();
   const [showUploadModal, setShowUploadModal] = useState(false);
-<<<<<<< HEAD
   const [uploadedEssay, setUploadedEssay] = useState<string | null>(null);
-=======
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
->>>>>>> 3ccec58c49de62bc367bf7790123e5d88c280b7c
   const [selectedStudent, setSelectedStudent] = useState("");
   
   const [students, setStudents] = useState<Student[]>([
@@ -72,12 +65,10 @@ const Assignment = () => {
     setShowUploadModal(true);
   };
 
-<<<<<<< HEAD
   // Persist uploaded essay so EssayChecker can pick it up (simple sessionStorage bridge)
   if (uploadedEssay) {
     sessionStorage.setItem('uploadedEssay', uploadedEssay);
   }
-=======
   // NEW: Handle Add Student Modal
   const handleAddStudentClick = () => {
     setShowAddStudentModal(true);
@@ -127,7 +118,6 @@ const Assignment = () => {
     setUploadedFile(null);
     setShowAddStudentModal(false);
   };
->>>>>>> 3ccec58c49de62bc367bf7790123e5d88c280b7c
 
   return (
     <div className="min-h-screen bg-background">
@@ -149,19 +139,15 @@ const Assignment = () => {
 
       {/* Main Content */}
       <main className="p-6">
-  <h2 className="text-2xl font-semibold text-foreground mb-8">Essay Assignment</h2>
+        <h2 className="text-2xl font-semibold text-foreground mb-8">Essay Assignment</h2>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Student List */}
           <Card className="bg-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-<<<<<<< HEAD
                 <h3 className="text-lg font-semibold">{t('assignment.studentList')}</h3>
-=======
-                <h3 className="text-lg font-semibold">Student List</h3>
-                <span className="text-sm text-muted-foreground">{students.length} students</span>
->>>>>>> 3ccec58c49de62bc367bf7790123e5d88c280b7c
+                <span className="text-sm text-muted-foreground">{students.length}</span>
               </div>
               
               <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -306,17 +292,13 @@ const Assignment = () => {
             {/* Student Name Selection */}
             <div className="space-y-2">
               <Label htmlFor="student" className="text-sm font-medium">{t('checker.student.placeholder')}</Label>
-              <select 
+              <select
                 id="student"
                 value={selectedStudent}
                 onChange={(e) => setSelectedStudent(e.target.value)}
                 className="w-full p-2 rounded bg-background/20 border border-primary-foreground/30 text-primary-foreground"
               >
-<<<<<<< HEAD
                 <option value="">{t('checker.student.placeholder')}</option>
-=======
-                <option value="">Select a student</option>
->>>>>>> 3ccec58c49de62bc367bf7790123e5d88c280b7c
                 {students.map((student) => (
                   <option key={student.id} value={student.id} className="text-foreground bg-background">
                     {student.name} ({student.studentId})
