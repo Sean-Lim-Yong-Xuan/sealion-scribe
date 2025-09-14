@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Home, Globe, Settings, User, Upload, Check, X, Plus } from "lucide-react";
+import DocumentUpload from "@/components/DocumentUpload";
 
 interface Student {
   id: string;
@@ -17,6 +18,7 @@ const Assignment = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadedEssay, setUploadedEssay] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState("");
   
   const [students] = useState<Student[]>([
@@ -48,6 +50,11 @@ const Assignment = () => {
   const handleUploadDocument = () => {
     setShowUploadModal(true);
   };
+
+  // Persist uploaded essay so EssayChecker can pick it up (simple sessionStorage bridge)
+  if (uploadedEssay) {
+    sessionStorage.setItem('uploadedEssay', uploadedEssay);
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -211,13 +218,11 @@ const Assignment = () => {
           
           <div className="space-y-6">
             {/* Upload Area */}
-            <div className="border-2 border-dashed border-primary-foreground/30 rounded-lg p-8 text-center">
-              <Upload className="w-12 h-12 mx-auto mb-4 text-primary-foreground/60" />
-              <p className="text-sm mb-2">Drag & drop files or Browse</p>
-              <p className="text-xs text-primary-foreground/60">
-                Supported formats: PDF, Doc, DOCX, TXT, PNG, JPG, Web PDF
-              </p>
-            </div>
+            <DocumentUpload
+              onParsed={(text) => {
+                setUploadedEssay(text);
+              }}
+            />
             
             {/* Student Name Selection */}
             <div className="space-y-2">
@@ -238,10 +243,14 @@ const Assignment = () => {
             </div>
             
             <Button 
-              className="w-full bg-background text-foreground hover:bg-background/80"
-              onClick={() => setShowUploadModal(false)}
+              className="w-full bg-background text-foreground hover:bg-background/80 disabled:opacity-50"
+              disabled={!uploadedEssay}
+              onClick={() => {
+                setShowUploadModal(false);
+                navigate('/essay-checker');
+              }}
             >
-              Upload Files
+              {uploadedEssay ? 'Open In Checker' : 'Waiting for File'}
             </Button>
           </div>
         </DialogContent>

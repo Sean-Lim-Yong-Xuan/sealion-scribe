@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { CheckCircle, XCircle, Globe, Settings, User, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle, Globe, Settings, User, Home, ChevronLeft, ChevronRight, FileUp } from "lucide-react";
+import DocumentUpload from "@/components/DocumentUpload";
 
 interface FeedbackItem {
   id: string;
@@ -81,6 +82,16 @@ The primary argument against allowing prisoners the right to vote, which often i
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // Load uploaded essay if available
+  useEffect(() => {
+    const stored = sessionStorage.getItem('uploadedEssay');
+    if (stored) {
+      setEssay(stored);
+      // Optionally clear so it doesn't override subsequent manual edits when navigating back
+      sessionStorage.removeItem('uploadedEssay');
+    }
+  }, []);
+
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     // Simulate analysis delay
@@ -118,7 +129,7 @@ The primary argument against allowing prisoners the right to vote, which often i
       {/* Main Content */}
       <div className="flex h-[calc(100vh-80px)]">
         {/* Essay Input Section */}
-        <div className="flex-1 p-6 border-r border-border">
+  <div className="flex-1 p-6 border-r border-border flex flex-col">
           {/* FIXED: Back button - Now properly navigates to Assignment page with improved styling */}
           <button 
             onClick={handleBackToAssignment}
@@ -128,7 +139,16 @@ The primary argument against allowing prisoners the right to vote, which often i
             <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">Back to Assignment</span>
           </button>
           
-          <div className="mb-6">
+          <div className="mb-4 flex flex-col gap-4">
+            <div>
+              <h3 className="text-sm font-medium mb-2 flex items-center gap-2"><FileUp className="w-4 h-4" />Upload / Import Document</h3>
+              <DocumentUpload
+                onParsed={(text, meta) => {
+                  // Append or replace? For educator, replace content with newly parsed text but keep ability to undo via state history if needed later.
+                  setEssay(text || '');
+                }}
+              />
+            </div>
             <Textarea
               value={essay}
               onChange={(e) => setEssay(e.target.value)}
@@ -137,7 +157,7 @@ The primary argument against allowing prisoners the right to vote, which often i
             />
           </div>
           
-          <div className="flex justify-center">
+          <div className="flex justify-center mt-auto pt-4">
             <Button 
               onClick={handleAnalyze}
               disabled={isAnalyzing || !essay.trim()}
