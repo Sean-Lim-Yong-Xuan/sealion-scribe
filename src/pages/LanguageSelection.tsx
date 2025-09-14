@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useI18n, translateLanguageId } from "@/lib/i18n";
 
 const LanguageSelection = () => {
   const navigate = useNavigate();
+  const { t, setLang, lang } = useI18n();
   const [selectedLanguage, setSelectedLanguage] = useState<string>("");
 
   const languages = [
@@ -18,6 +20,8 @@ const LanguageSelection = () => {
 
   const handleConfirm = () => {
     if (selectedLanguage) {
+      const mapped = translateLanguageId(selectedLanguage);
+      if (mapped) setLang(mapped);
       navigate('/dashboard');
     }
   };
@@ -28,7 +32,7 @@ const LanguageSelection = () => {
         <CardContent className="p-8">
           <div className="space-y-8">
             <div className="text-center">
-              <h2 className="text-xl font-medium mb-8">Choose your Language</h2>
+              <h2 className="text-xl font-medium mb-8">{t('language.choose')}</h2>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -54,7 +58,7 @@ const LanguageSelection = () => {
                 className="px-12 py-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 variant="secondary"
               >
-                Confirm
+                {t('language.confirm')}
               </Button>
             </div>
           </div>

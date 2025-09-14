@@ -4,16 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { CheckCircle, XCircle, Globe, Settings, User, Home, ChevronLeft, ChevronRight, FileUp } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import DocumentUpload from "@/components/DocumentUpload";
 
 interface FeedbackItem {
-  id: string;
-  text: string;
+  id: string; // translation key
   type: 'positive' | 'negative';
 }
 
 const EssayChecker = () => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [essay, setEssay] = useState(`The history of our nation is fraught with battles over people's rights, and the right to vote is foremost among them. The right to vote is linked to many other significant rights and principles, such of that of equality and justice. It should not be denied to eligible citizens, including those who have infringed on the rights of others.
 
 Prisoners should be allowed the right to vote, as this right is crucial to our classification as a democracy. The primary argument denying prisoners this right is based on a gross generalization, and denies their standing as citizens of the state.
@@ -22,62 +23,18 @@ The right to vote defines our nation as a democracy and should be afforded to al
 
 The primary argument against allowing prisoners the right to vote, which often infringes on the right of another, his or her own rights, is based on a gross generalization. This argument fails to take into account the significant number of prisoners who are incarcerated because of minor crimes or crimes that stem civil moral prohibitions, wrong action to feed but not because it is a punishment against the tenets of moral and just government. You would argue that a mansions insolently achieve the violence toward social patterns.`);
 
-  const [feedback, setFeedback] = useState<FeedbackItem[]>([
-    {
-      id: "1",
-      text: "Clear thesis - Strongly argues that prisoners should have the right to vote.",
-      type: "positive"
-    },
-    {
-      id: "2", 
-      text: "Democratic principles - Ties voting to key democratic values like equality, justice, and civil rights.",
-      type: "positive"
-    },
-    {
-      id: "3",
-      text: "Acknowledges counterarguments - Addresses the view that criminals forfeit their rights.",
-      type: "positive"
-    },
-    {
-      id: "4",
-      text: "Nuanced reasoning - Differentiates between types of crimes (e.g., non-violent vs. violent).",
-      type: "positive"
-    },
-    {
-      id: "5",
-      text: "Social justice awareness - Highlights racial and economic disparities in the prison system.",
-      type: "positive"
-    },
-    {
-      id: "6",
-      text: "Moral appeal - Frames voting as a moral and civil right, not a reward for good behavior.",
-      type: "positive"
-    },
-    {
-      id: "7",
-      text: "Repetitive - Some arguments (ex: democracy, generalization of prisoners) are repeated unnecessarily.",
-      type: "negative"
-    },
-    {
-      id: "8",
-      text: "Convoluted sentences - Ideas jump around, some points (like 'privacy and free speech') appear too late or out of place.",
-      type: "negative"
-    },
-    {
-      id: "9",
-      text: "Spelling Mistakes - Some words spelt wrongly.",
-      type: "negative"
-    },
-    {
-      id: "10",
-      text: "Weak transitions - Lacks smooth flow between paragraphs and sections.",
-      type: "negative"
-    },
-    {
-      id: "11",
-      text: "Non-Detailed Examples - Mentions issues like racial profiling and drug laws but lacks specific evidence or data.",
-      type: "negative"
-    }
+  const [feedback] = useState<FeedbackItem[]>([
+    { id: 'feedback.item1', type: 'positive' },
+    { id: 'feedback.item2', type: 'positive' },
+    { id: 'feedback.item3', type: 'positive' },
+    { id: 'feedback.item4', type: 'positive' },
+    { id: 'feedback.item5', type: 'positive' },
+    { id: 'feedback.item6', type: 'positive' },
+    { id: 'feedback.item7', type: 'negative' },
+    { id: 'feedback.item8', type: 'negative' },
+    { id: 'feedback.item9', type: 'negative' },
+    { id: 'feedback.item10', type: 'negative' },
+    { id: 'feedback.item11', type: 'negative' },
   ]);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -136,12 +93,12 @@ The primary argument against allowing prisoners the right to vote, which often i
             className="mb-4 flex items-center gap-2 bg-transparent border-none p-2 -ml-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer group"
           >
             <ChevronLeft className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-            <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">Back to Assignment</span>
+            <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">{t('checker.back')}</span>
           </button>
           
           <div className="mb-4 flex flex-col gap-4">
             <div>
-              <h3 className="text-sm font-medium mb-2 flex items-center gap-2"><FileUp className="w-4 h-4" />Upload / Import Document</h3>
+              <h3 className="text-sm font-medium mb-2 flex items-center gap-2"><FileUp className="w-4 h-4" />{t('checker.uploadTitle')}</h3>
               <DocumentUpload
                 onParsed={(text, meta) => {
                   // Append or replace? For educator, replace content with newly parsed text but keep ability to undo via state history if needed later.
@@ -163,7 +120,7 @@ The primary argument against allowing prisoners the right to vote, which often i
               disabled={isAnalyzing || !essay.trim()}
               className="px-8"
             >
-              {isAnalyzing ? "Analyzing..." : "Analyze Essay"}
+              {isAnalyzing ? t('checker.analyze') + '...' : t('checker.analyze')}
             </Button>
           </div>
         </div>
@@ -173,18 +130,13 @@ The primary argument against allowing prisoners the right to vote, which often i
           {/* Positive Feedback */}
           <Card className="p-4 mb-6">
             <h2 className="text-lg font-semibold text-success mb-4 flex items-center gap-2">
-              Positive Feedback
+              {t('checker.feedback.positive')}
             </h2>
             <div className="space-y-3">
               {positiveFeedback.map((item) => (
                 <div key={item.id} className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-card-foreground leading-relaxed">
-                    <span className="font-medium">{item.text.split(' - ')[0]}</span>
-                    {item.text.includes(' - ') && (
-                      <span> - {item.text.split(' - ')[1]}</span>
-                    )}
-                  </p>
+                  <p className="text-sm text-card-foreground leading-relaxed">{t(item.id)}</p>
                 </div>
               ))}
             </div>
@@ -193,18 +145,13 @@ The primary argument against allowing prisoners the right to vote, which often i
           {/* Negative Feedback */}
           <Card className="p-4">
             <h2 className="text-lg font-semibold text-destructive mb-4 flex items-center gap-2">
-              Negative Feedback
+              {t('checker.feedback.negative')}
             </h2>
             <div className="space-y-3">
               {negativeFeedback.map((item) => (
                 <div key={item.id} className="flex items-start gap-2">
                   <XCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-card-foreground leading-relaxed">
-                    <span className="font-medium">{item.text.split(' - ')[0]}</span>
-                    {item.text.includes(' - ') && (
-                      <span> - {item.text.split(' - ')[1]}</span>
-                    )}
-                  </p>
+                  <p className="text-sm text-card-foreground leading-relaxed">{t(item.id)}</p>
                 </div>
               ))}
             </div>
@@ -218,7 +165,7 @@ The primary argument against allowing prisoners the right to vote, which often i
           <Button variant="ghost" size="sm" className="flex items-center gap-2">
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="text-sm text-muted-foreground">Student Name Here</span>
+          <span className="text-sm text-muted-foreground">{t('checker.student.placeholder')}</span>
           <Button variant="ghost" size="sm" className="flex items-center gap-2">
             <ChevronRight className="w-4 h-4" />
           </Button>

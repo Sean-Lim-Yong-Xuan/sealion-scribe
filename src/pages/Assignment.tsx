@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Home, Globe, Settings, User, Upload, Check, X, Plus } from "lucide-react";
 import DocumentUpload from "@/components/DocumentUpload";
+import { useI18n } from "@/lib/i18n";
 
 interface Student {
   id: string;
@@ -17,6 +18,7 @@ interface Student {
 const Assignment = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { t } = useI18n();
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadedEssay, setUploadedEssay] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -76,14 +78,14 @@ const Assignment = () => {
 
       {/* Main Content */}
       <main className="p-6">
-        <h2 className="text-2xl font-semibold text-foreground mb-8">Essay Assignment</h2>
+  <h2 className="text-2xl font-semibold text-foreground mb-8">Essay Assignment</h2>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Student List */}
           <Card className="bg-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Student List</h3>
+                <h3 className="text-lg font-semibold">{t('assignment.studentList')}</h3>
               </div>
               
               <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -121,14 +123,8 @@ const Assignment = () => {
           {/* Question */}
           <Card className="bg-card">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Question</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Do you believe that individuals who are currently serving prison sentences should have 
-                the right to vote in political elections? In your response, consider the purpose of 
-                incarceration, the principles of democracy and citizenship, and whether the loss of 
-                voting rights serves justice or hinders rehabilitation. Support your opinion with clear 
-                reasoning and, if possible, real-world examples or legal perspectives.
-              </p>
+              <h3 className="text-lg font-semibold mb-4">{t('assignment.question.title')}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{t('assignment.question.prompt')}</p>
               
               {/* Submission Progress */}
               <div className="mt-6">
@@ -155,16 +151,16 @@ const Assignment = () => {
                     </div>
                   </div>
                 </div>
-                <p className="text-center text-sm text-muted-foreground">Students Submitted</p>
+                <p className="text-center text-sm text-muted-foreground">{t('assignment.studentList')}</p>
                 
                 <div className="flex items-center gap-4 mt-4 text-xs">
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 bg-success rounded-full"></div>
-                    <span>Submitted</span>
+                    <span>{t('assignment.legend.submitted')}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 bg-destructive rounded-full"></div>
-                    <span>Not Submitted</span>
+                    <span>{t('assignment.legend.notSubmitted')}</span>
                   </div>
                 </div>
               </div>
@@ -174,16 +170,16 @@ const Assignment = () => {
           {/* Grading */}
           <Card className="bg-card">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-6">Grading</h3>
+              <h3 className="text-lg font-semibold mb-6">{t('assignment.grading.title')}</h3>
               
               <div className="space-y-4 mb-6">
                 <div className="flex items-center gap-2">
                   <X className="w-4 h-4 text-destructive" />
-                  <span className="text-sm text-destructive font-medium">107 Mistakes Made</span>
+                  <span className="text-sm text-destructive font-medium">{t('assignment.grading.mistakes',{count:107})}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-success" />
-                  <span className="text-sm text-success font-medium">37 Corrections</span>
+                  <span className="text-sm text-success font-medium">{t('assignment.grading.corrections',{count:37})}</span>
                 </div>
               </div>
               
@@ -193,7 +189,7 @@ const Assignment = () => {
                   className="w-full bg-primary hover:bg-primary/90"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Upload New Document
+                  {t('assignment.upload')}
                 </Button>
                 
                 <Button 
@@ -201,7 +197,7 @@ const Assignment = () => {
                   className="w-full"
                   onClick={() => navigate('/essay-checker')}
                 >
-                  Open Grammar Checker
+                  {t('assignment.openChecker')}
                 </Button>
               </div>
             </CardContent>
@@ -213,7 +209,7 @@ const Assignment = () => {
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
         <DialogContent className="bg-primary/90 text-primary-foreground border-primary">
           <DialogHeader>
-            <DialogTitle className="text-center text-lg font-medium">Upload</DialogTitle>
+            <DialogTitle className="text-center text-lg font-medium">{t('assignment.upload')}</DialogTitle>
           </DialogHeader>
           
           <div className="space-y-6">
@@ -226,14 +222,14 @@ const Assignment = () => {
             
             {/* Student Name Selection */}
             <div className="space-y-2">
-              <Label htmlFor="student" className="text-sm font-medium">Student Name</Label>
+              <Label htmlFor="student" className="text-sm font-medium">{t('checker.student.placeholder')}</Label>
               <select 
                 id="student"
                 value={selectedStudent}
                 onChange={(e) => setSelectedStudent(e.target.value)}
                 className="w-full p-2 rounded bg-background/20 border border-primary-foreground/30 text-primary-foreground"
               >
-                <option value="">One Student Name Here</option>
+                <option value="">{t('checker.student.placeholder')}</option>
                 {students.map((student) => (
                   <option key={student.id} value={student.id} className="text-foreground bg-background">
                     {student.name}
@@ -250,7 +246,7 @@ const Assignment = () => {
                 navigate('/essay-checker');
               }}
             >
-              {uploadedEssay ? 'Open In Checker' : 'Waiting for File'}
+              {uploadedEssay ? t('assignment.openChecker') : t('checker.analyze') + '...'}
             </Button>
           </div>
         </DialogContent>
