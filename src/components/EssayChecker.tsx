@@ -102,16 +102,7 @@ The primary argument against allowing prisoners the right to vote, which often i
             <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">{t('checker.back')}</span>
           </button>
           
-          <div className="mb-4 flex flex-col gap-4">
-            <div>
-              <h3 className="text-sm font-medium mb-2 flex items-center gap-2"><FileUp className="w-4 h-4" />{t('checker.uploadTitle')}</h3>
-              <DocumentUpload
-                onParsed={(text, meta) => {
-                  // Append or replace? For educator, replace content with newly parsed text but keep ability to undo via state history if needed later.
-                  setEssay(text || '');
-                }}
-              />
-            </div>
+        <div className="mb-4">
             <Textarea
               value={essay}
               onChange={(e) => setEssay(e.target.value)}
