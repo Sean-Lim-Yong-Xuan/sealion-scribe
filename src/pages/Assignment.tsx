@@ -5,34 +5,46 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Home, Globe, Settings, User, Upload, Check, X, Plus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Home, Globe, Settings, User, Upload, Check, X, Plus, FileText, UserPlus } from "lucide-react";
 
 interface Student {
   id: string;
   name: string;
+  studentId: string;
   submitted: boolean;
+  essay?: string;
 }
 
 const Assignment = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState("");
   
-  const [students] = useState<Student[]>([
-    { id: "1", name: "Student", submitted: true },
-    { id: "2", name: "Student", submitted: true },
-    { id: "3", name: "Student", submitted: true },
-    { id: "4", name: "Student", submitted: true },
-    { id: "5", name: "Student", submitted: true },
-    { id: "6", name: "Student", submitted: true },
-    { id: "7", name: "Student", submitted: true },
-    { id: "8", name: "Student", submitted: true },
-    { id: "9", name: "Student", submitted: true },
-    { id: "10", name: "Student", submitted: true },
-    { id: "11", name: "Student", submitted: false },
-    { id: "12", name: "Student", submitted: false }
+  const [students, setStudents] = useState<Student[]>([
+    { id: "1", name: "Alice Johnson", studentId: "STU001", submitted: true },
+    { id: "2", name: "Bob Smith", studentId: "STU002", submitted: true },
+    { id: "3", name: "Carol Brown", studentId: "STU003", submitted: true },
+    { id: "4", name: "David Wilson", studentId: "STU004", submitted: true },
+    { id: "5", name: "Emma Davis", studentId: "STU005", submitted: true },
+    { id: "6", name: "Frank Miller", studentId: "STU006", submitted: true },
+    { id: "7", name: "Grace Lee", studentId: "STU007", submitted: true },
+    { id: "8", name: "Henry Taylor", studentId: "STU008", submitted: true },
+    { id: "9", name: "Ivy Chen", studentId: "STU009", submitted: true },
+    { id: "10", name: "Jack Anderson", studentId: "STU010", submitted: true },
+    { id: "11", name: "Kate Rodriguez", studentId: "STU011", submitted: false },
+    { id: "12", name: "Luke Martinez", studentId: "STU012", submitted: false }
   ]);
+
+  // Add Student Form State
+  const [newStudent, setNewStudent] = useState({
+    name: "",
+    studentId: "",
+    essay: ""
+  });
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const submittedCount = students.filter(s => s.submitted).length;
   const totalCount = students.length;
@@ -47,6 +59,56 @@ const Assignment = () => {
 
   const handleUploadDocument = () => {
     setShowUploadModal(true);
+  };
+
+  // NEW: Handle Add Student Modal
+  const handleAddStudentClick = () => {
+    setShowAddStudentModal(true);
+  };
+
+  // NEW: Handle File Upload for New Student
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      // Read file content for essay text (simplified for demo)
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        setNewStudent(prev => ({
+          ...prev,
+          essay: content
+        }));
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // NEW: Add New Student
+  const handleAddStudent = () => {
+    if (newStudent.name.trim() && newStudent.studentId.trim() && newStudent.essay.trim()) {
+      const newStudentData: Student = {
+        id: (students.length + 1).toString(),
+        name: newStudent.name.trim(),
+        studentId: newStudent.studentId.trim(),
+        submitted: true, // Since they're uploading an essay
+        essay: newStudent.essay
+      };
+      
+      setStudents(prev => [...prev, newStudentData]);
+      
+      // Reset form
+      setNewStudent({ name: "", studentId: "", essay: "" });
+      setUploadedFile(null);
+      setShowAddStudentModal(false);
+    }
+  };
+
+  // NEW: Reset Add Student Form
+  const handleCancelAddStudent = () => {
+    setNewStudent({ name: "", studentId: "", essay: "" });
+    setUploadedFile(null);
+    setShowAddStudentModal(false);
   };
 
   return (
@@ -77,6 +139,7 @@ const Assignment = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Student List</h3>
+                <span className="text-sm text-muted-foreground">{students.length} students</span>
               </div>
               
               <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -84,14 +147,19 @@ const Assignment = () => {
                   <div 
                     key={student.id}
                     onClick={() => handleStudentClick(student.id)}
-                    className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
-                      student.submitted ? 'hover:bg-muted/50' : 'opacity-50'
+                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors border ${
+                      student.submitted 
+                        ? 'hover:bg-muted/50 border-border' 
+                        : 'opacity-50 border-dashed border-muted-foreground/30'
                     }`}
                   >
                     <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium">
-                      A
+                      {student.name.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm flex-1">{student.name}</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{student.name}</div>
+                      <div className="text-xs text-muted-foreground">{student.studentId}</div>
+                    </div>
                     {student.submitted ? (
                       <Check className="w-4 h-4 text-success" />
                     ) : (
@@ -101,11 +169,13 @@ const Assignment = () => {
                 ))}
               </div>
               
+              {/* ENHANCED: Add Student Button with proper functionality */}
               <Button 
+                onClick={handleAddStudentClick}
                 variant="ghost" 
-                className="w-full mt-4 text-primary hover:bg-primary/10"
+                className="w-full mt-4 text-primary hover:bg-primary/10 border-2 border-dashed border-primary/30 hover:border-primary/50"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <UserPlus className="w-4 h-4 mr-2" />
                 Add Student
               </Button>
             </CardContent>
@@ -228,10 +298,10 @@ const Assignment = () => {
                 onChange={(e) => setSelectedStudent(e.target.value)}
                 className="w-full p-2 rounded bg-background/20 border border-primary-foreground/30 text-primary-foreground"
               >
-                <option value="">One Student Name Here</option>
+                <option value="">Select a student</option>
                 {students.map((student) => (
                   <option key={student.id} value={student.id} className="text-foreground bg-background">
-                    {student.name}
+                    {student.name} ({student.studentId})
                   </option>
                 ))}
               </select>
@@ -243,6 +313,100 @@ const Assignment = () => {
             >
               Upload Files
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* NEW: Add Student Modal */}
+      <Dialog open={showAddStudentModal} onOpenChange={setShowAddStudentModal}>
+        <DialogContent className="bg-card text-card-foreground border-border max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-center text-lg font-medium flex items-center justify-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Add New Student
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Student Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="studentName" className="text-sm font-medium">Student Name</Label>
+                <Input
+                  id="studentName"
+                  placeholder="Enter student name"
+                  value={newStudent.name}
+                  onChange={(e) => setNewStudent(prev => ({ ...prev, name: e.target.value }))}
+                  className="bg-background/50"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="studentIdNumber" className="text-sm font-medium">Student ID Number</Label>
+                <Input
+                  id="studentIdNumber"
+                  placeholder="e.g., STU013"
+                  value={newStudent.studentId}
+                  onChange={(e) => setNewStudent(prev => ({ ...prev, studentId: e.target.value }))}
+                  className="bg-background/50"
+                />
+              </div>
+            </div>
+
+            {/* Essay Upload */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Upload Essay</Label>
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                <input
+                  type="file"
+                  id="essayFile"
+                  accept=".txt,.doc,.docx,.pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <label htmlFor="essayFile" className="cursor-pointer">
+                  <FileText className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {uploadedFile ? uploadedFile.name : "Click to upload essay file"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Supported formats: TXT, DOC, DOCX, PDF
+                  </p>
+                </label>
+              </div>
+            </div>
+
+            {/* Essay Text Area (if file uploaded or manual entry) */}
+            <div className="space-y-2">
+              <Label htmlFor="essayText" className="text-sm font-medium">
+                Essay Content {uploadedFile && "(from uploaded file)"}
+              </Label>
+              <Textarea
+                id="essayText"
+                placeholder="Essay content will appear here after file upload, or enter manually..."
+                value={newStudent.essay}
+                onChange={(e) => setNewStudent(prev => ({ ...prev, essay: e.target.value }))}
+                className="min-h-[200px] bg-background/50"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={handleCancelAddStudent}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAddStudent}
+                disabled={!newStudent.name.trim() || !newStudent.studentId.trim() || !newStudent.essay.trim()}
+                className="flex-1 bg-primary hover:bg-primary/90"
+              >
+                Add Student
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
