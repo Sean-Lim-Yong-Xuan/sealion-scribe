@@ -3,9 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { CheckCircle, XCircle, Globe, Settings, User, Home, ChevronLeft, ChevronRight, FileUp } from "lucide-react";
+import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Globe, Settings, User, Home } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import DocumentUpload from "@/components/DocumentUpload";
 
 interface FeedbackItem {
   id: string; // translation key
@@ -62,11 +61,6 @@ The primary argument against allowing prisoners the right to vote, which often i
     navigate('/assignment/:id'); // Direct navigation to Assignment page
   };
 
-  // FIXED: Home button handler - navigates to dashboard
-  const handleHomeToDashboard = () => {
-    navigate('/dashboard');
-  };
-
   const positiveFeedback = feedback.filter(item => item.type === 'positive');
   const negativeFeedback = feedback.filter(item => item.type === 'negative');
 
@@ -76,8 +70,7 @@ The primary argument against allowing prisoners the right to vote, which often i
       <header className="bg-primary text-primary-foreground px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Home className="w-6 h-6 cursor-pointer hover:text-accent transition-colors" 
-              onClick={handleHomeToDashboard}/>
+            <Home className="w-6 h-6 cursor-pointer" onClick={() => navigate('/dashboard')} aria-label="Go to Dashboard" />
             <h1 className="text-xl font-semibold">Checkit ✓</h1>
           </div>
           <div className="flex items-center gap-4">
@@ -102,7 +95,7 @@ The primary argument against allowing prisoners the right to vote, which often i
             <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">{t('checker.back')}</span>
           </button>
           
-        <div className="mb-4">
+          <div className="mb-4">
             <Textarea
               value={essay}
               onChange={(e) => setEssay(e.target.value)}
