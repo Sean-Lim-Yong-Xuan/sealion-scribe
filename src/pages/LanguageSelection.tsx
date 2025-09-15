@@ -15,7 +15,12 @@ const LanguageSelection = () => {
     { id: "tamil", label: "தமிழ்" },
     { id: "chinese", label: "中文" },
     { id: "thai", label: "ภาษาไทย" },
-    { id: "indonesian", label: "Bahasa Indonesia" }
+    { id: "indonesian", label: "Bahasa Indonesia" },
+    { id: "filipino", label: "Filipino" },
+    { id: "khmer", label: "Khmer" },
+    { id: "lao", label: "Lao" },
+    { id: "burmese", label: "Burmese" },
+    { id: "vietnamese", label: "Tiếng Việt" }
   ];
 
   const handleConfirm = () => {
