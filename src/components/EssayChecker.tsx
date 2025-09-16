@@ -7,25 +7,26 @@ import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Globe, Settings, User,
 import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
 
-// AWS Bedrock integration for Sealion AI model
-// Note: This will be moved to a Supabase edge function for secure API key handling
+// AWS Bedrock integration for Sealion AI model via Supabase Edge Function
 async function analyzeEssayWithSealion(essayText: string) {
   try {
-    // This function will call a Supabase edge function that handles Bedrock integration
-    const response = await fetch('/api/analyze-essay', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ essay: essayText }),
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    // Call the Supabase edge function that handles Bedrock integration
+    const { data, error } = await supabase.functions.invoke('analyze-essay', {
+      body: { essay: essayText },
     });
 
-    if (!response.ok) {
-      throw new Error('Analysis failed');
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw new Error(`Analysis failed: ${error.message}`);
     }
 
-    const result = await response.json();
-    return result;
+    if (!data || !data.success) {
+      throw new Error('Analysis failed: Invalid response from server');
+    }
+
+    return data;
   } catch (error) {
     console.error('Error analyzing essay:', error);
     throw error;
@@ -33,8 +34,9 @@ async function analyzeEssayWithSealion(essayText: string) {
 }
 
 interface FeedbackItem {
-  id: string; // translation key
+  id: string;
   type: 'positive' | 'negative';
+  text?: string; // For dynamic feedback from AI analysis
 }
 
 const EssayChecker = () => {
@@ -48,7 +50,7 @@ The right to vote defines our nation as a democracy and should be afforded to al
 
 The primary argument against allowing prisoners the right to vote, which often infringes on the right of another, his or her own rights, is based on a gross generalization. This argument fails to take into account the significant number of prisoners who are incarcerated because of minor crimes or crimes that stem civil moral prohibitions, wrong action to feed but not because it is a punishment against the tenets of moral and just government. You would argue that a mansions insolently achieve the violence toward social patterns.`);
 
-  const [feedback] = useState<FeedbackItem[]>([
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([
     { id: 'feedback.item1', type: 'positive' },
     { id: 'feedback.item2', type: 'positive' },
     { id: 'feedback.item3', type: 'positive' },
@@ -85,11 +87,9 @@ The primary argument against allowing prisoners the right to vote, which often i
       // Call the Sealion AI model via Supabase edge function
       const analysisResult = await analyzeEssayWithSealion(essay);
       
-      // Update feedback state with real analysis results
-      // The edge function should return { positiveFeedback: [], negativeFeedback: [] }
       if (analysisResult.positiveFeedback && analysisResult.negativeFeedback) {
         // Convert analysis results to feedback format
-        const newFeedback = [
+        const newFeedback: FeedbackItem[] = [
           ...analysisResult.positiveFeedback.map((feedback: string, index: number) => ({
             id: `positive_${index}`,
             type: 'positive' as const,
@@ -102,14 +102,14 @@ The primary argument against allowing prisoners the right to vote, which often i
           }))
         ];
         
-        // For now, we'll keep the existing mock data structure
-        // TODO: Update feedback state when backend is connected
+        // Update feedback state with real analysis results
+        setFeedback(newFeedback);
       }
       
       toast.success('Essay analysis completed!');
     } catch (error) {
       console.error('Analysis failed:', error);
-      toast.error('Analysis failed. Please make sure Supabase is connected and AWS credentials are configured.');
+      toast.error('Analysis failed. Please check your AWS Bedrock configuration and try again.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -190,7 +190,9 @@ The primary argument against allowing prisoners the right to vote, which often i
               {positiveFeedback.map((item) => (
                 <div key={item.id} className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-card-foreground leading-relaxed">{t(item.id)}</p>
+                  <p className="text-sm text-card-foreground leading-relaxed">
+                    {item.text || t(item.id)}
+                  </p>
                 </div>
               ))}
             </div>
@@ -205,7 +207,9 @@ The primary argument against allowing prisoners the right to vote, which often i
               {negativeFeedback.map((item) => (
                 <div key={item.id} className="flex items-start gap-2">
                   <XCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-card-foreground leading-relaxed">{t(item.id)}</p>
+                  <p className="text-sm text-card-foreground leading-relaxed">
+                    {item.text || t(item.id)}
+                  </p>
                 </div>
               ))}
             </div>
