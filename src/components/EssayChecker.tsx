@@ -56,9 +56,14 @@ The primary argument against allowing prisoners the right to vote, which often i
     }, 2000);
   };
 
-  // FIXED: Back button handler - navigates directly to Assignment page instead of browser history
+  // Back button uses stored assignment id for correct route
   const handleBackToAssignment = () => {
-    navigate('/assignment/:id'); // Direct navigation to Assignment page
+    const assignmentId = sessionStorage.getItem('currentAssignmentId');
+    if (assignmentId) {
+      navigate(`/assignment/${assignmentId}`);
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   const positiveFeedback = feedback.filter(item => item.type === 'positive');
