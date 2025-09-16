@@ -5,9 +5,32 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Globe, Settings, User, Home } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { toast } from "sonner";
 
-// Note: AI analysis functionality requires backend integration
-// The Sealion model analysis will be implemented via Supabase edge functions
+// AWS Bedrock integration for Sealion AI model
+// Note: This will be moved to a Supabase edge function for secure API key handling
+async function analyzeEssayWithSealion(essayText: string) {
+  try {
+    // This function will call a Supabase edge function that handles Bedrock integration
+    const response = await fetch('/api/analyze-essay', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ essay: essayText }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Analysis failed');
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error analyzing essay:', error);
+    throw error;
+  }
+}
 
 interface FeedbackItem {
   id: string; // translation key
@@ -52,11 +75,44 @@ The primary argument against allowing prisoners the right to vote, which often i
   }, []);
 
   const handleAnalyze = async () => {
+    if (!essay.trim()) {
+      toast.error('Please enter an essay to analyze');
+      return;
+    }
+
     setIsAnalyzing(true);
-    // Simulate analysis delay
-    setTimeout(() => {
+    try {
+      // Call the Sealion AI model via Supabase edge function
+      const analysisResult = await analyzeEssayWithSealion(essay);
+      
+      // Update feedback state with real analysis results
+      // The edge function should return { positiveFeedback: [], negativeFeedback: [] }
+      if (analysisResult.positiveFeedback && analysisResult.negativeFeedback) {
+        // Convert analysis results to feedback format
+        const newFeedback = [
+          ...analysisResult.positiveFeedback.map((feedback: string, index: number) => ({
+            id: `positive_${index}`,
+            type: 'positive' as const,
+            text: feedback
+          })),
+          ...analysisResult.negativeFeedback.map((feedback: string, index: number) => ({
+            id: `negative_${index}`,
+            type: 'negative' as const,
+            text: feedback
+          }))
+        ];
+        
+        // For now, we'll keep the existing mock data structure
+        // TODO: Update feedback state when backend is connected
+      }
+      
+      toast.success('Essay analysis completed!');
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      toast.error('Analysis failed. Please make sure Supabase is connected and AWS credentials are configured.');
+    } finally {
       setIsAnalyzing(false);
-    }, 2000);
+    }
   };
 
   // Back button uses stored assignment id for correct route
