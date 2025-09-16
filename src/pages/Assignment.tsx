@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Home, Globe, Settings, User, Upload, Check, X, Plus, FileText, UserPlus } from "lucide-react";
+import { Home, Globe, Settings, User, Upload, Check, X, Plus, FileText, UserPlus, Trash2 } from "lucide-react";
 import DocumentUpload from "@/components/DocumentUpload";
 import { useI18n } from "@/lib/i18n";
 
@@ -27,20 +27,46 @@ const Assignment = () => {
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState("");
   
-  const [students, setStudents] = useState<Student[]>([
-    { id: "1", name: "Alice Johnson", studentId: "STU001", submitted: true },
-    { id: "2", name: "Bob Smith", studentId: "STU002", submitted: true },
-    { id: "3", name: "Carol Brown", studentId: "STU003", submitted: true },
-    { id: "4", name: "David Wilson", studentId: "STU004", submitted: true },
-    { id: "5", name: "Emma Davis", studentId: "STU005", submitted: true },
-    { id: "6", name: "Frank Miller", studentId: "STU006", submitted: true },
-    { id: "7", name: "Grace Lee", studentId: "STU007", submitted: true },
-    { id: "8", name: "Henry Taylor", studentId: "STU008", submitted: true },
-    { id: "9", name: "Ivy Chen", studentId: "STU009", submitted: true },
-    { id: "10", name: "Jack Anderson", studentId: "STU010", submitted: true },
-    { id: "11", name: "Kate Rodriguez", studentId: "STU011", submitted: false },
-    { id: "12", name: "Luke Martinez", studentId: "STU012", submitted: false }
-  ]);
+  // Students list now persisted per-assignment in localStorage
+  const [students, setStudents] = useState<Student[]>([]);
+  const storageKey = id ? `assignment_students_${id}` : null;
+
+  useEffect(() => {
+    if (!storageKey) return;
+    const raw = localStorage.getItem(storageKey);
+    if (raw) {
+      try {
+        const parsed: Student[] = JSON.parse(raw);
+        setStudents(parsed);
+        return;
+      } catch {
+        // fall through to seeding
+      }
+    }
+    // Seed with sample data on first load only
+    const seed: Student[] = [
+      { id: "1", name: "Alice Johnson", studentId: "STU001", submitted: true },
+      { id: "2", name: "Bob Smith", studentId: "STU002", submitted: true },
+      { id: "3", name: "Carol Brown", studentId: "STU003", submitted: true },
+      { id: "4", name: "David Wilson", studentId: "STU004", submitted: true },
+      { id: "5", name: "Emma Davis", studentId: "STU005", submitted: true },
+      { id: "6", name: "Frank Miller", studentId: "STU006", submitted: true },
+      { id: "7", name: "Grace Lee", studentId: "STU007", submitted: true },
+      { id: "8", name: "Henry Taylor", studentId: "STU008", submitted: true },
+      { id: "9", name: "Ivy Chen", studentId: "STU009", submitted: true },
+      { id: "10", name: "Jack Anderson", studentId: "STU010", submitted: true },
+      { id: "11", name: "Kate Rodriguez", studentId: "STU011", submitted: false },
+      { id: "12", name: "Luke Martinez", studentId: "STU012", submitted: false }
+    ];
+    setStudents(seed);
+    localStorage.setItem(storageKey, JSON.stringify(seed));
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!storageKey) return;
+    // Persist only after initial load/seed
+    localStorage.setItem(storageKey, JSON.stringify(students));
+  }, [students, storageKey]);
 
   // Add Student Form State
   const [newStudent, setNewStudent] = useState({
@@ -57,6 +83,16 @@ const Assignment = () => {
   const handleStudentClick = (studentId: string) => {
     const student = students.find(s => s.id === studentId);
     if (student?.submitted) {
+      // If the student has an essay, pass it to the checker; otherwise clear to allow default.
+      if (student.essay && student.essay.trim()) {
+        sessionStorage.setItem('uploadedEssay', student.essay);
+        sessionStorage.setItem('currentStudentName', student.name);
+      } else {
+        sessionStorage.removeItem('uploadedEssay');
+        sessionStorage.removeItem('currentStudentName');
+      }
+      // Persist current assignment id for proper back navigation
+      if (id) sessionStorage.setItem('currentAssignmentId', id);
       navigate('/essay-checker');
     }
   };
@@ -96,10 +132,10 @@ const Assignment = () => {
   const handleAddStudent = () => {
     if (newStudent.name.trim() && newStudent.studentId.trim() && newStudent.essay.trim()) {
       const newStudentData: Student = {
-        id: (students.length + 1).toString(),
+        id: crypto.randomUUID(),
         name: newStudent.name.trim(),
         studentId: newStudent.studentId.trim(),
-        submitted: true, // Since they're uploading an essay
+        submitted: true, // Provided essay counts as submitted
         essay: newStudent.essay
       };
       
@@ -110,6 +146,12 @@ const Assignment = () => {
       setUploadedFile(null);
       setShowAddStudentModal(false);
     }
+  };
+
+  // Delete student (non-destructive confirmation can be added later)
+  const handleDeleteStudent = (studentId: string) => {
+    setStudents(prev => prev.filter(s => s.id !== studentId));
+    if (selectedStudent === studentId) setSelectedStudent("");
   };
 
   // NEW: Reset Add Student Form
@@ -152,27 +194,40 @@ const Assignment = () => {
               
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {students.map((student) => (
-                  <div 
+                  <div
                     key={student.id}
-                    onClick={() => handleStudentClick(student.id)}
-                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors border ${
-                      student.submitted 
-                        ? 'hover:bg-muted/50 border-border' 
+                    className={`group flex items-center gap-3 p-3 rounded-lg transition-colors border relative ${
+                      student.submitted
+                        ? 'hover:bg-muted/50 border-border'
                         : 'opacity-50 border-dashed border-muted-foreground/30'
                     }`}
                   >
-                    <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium">
-                      {student.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">{student.name}</div>
-                      <div className="text-xs text-muted-foreground">{student.studentId}</div>
-                    </div>
-                    {student.submitted ? (
-                      <Check className="w-4 h-4 text-success" />
-                    ) : (
-                      <X className="w-4 h-4 text-destructive" />
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleStudentClick(student.id)}
+                      className="flex items-center gap-3 flex-1 text-left"
+                    >
+                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium">
+                        {student.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">{student.name}</div>
+                        <div className="text-xs text-muted-foreground">{student.studentId}</div>
+                      </div>
+                      {student.submitted ? (
+                        <Check className="w-4 h-4 text-success" />
+                      ) : (
+                        <X className="w-4 h-4 text-destructive" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Delete student"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteStudent(student.id); }}
+                      className="opacity-0 group-hover:opacity-100 absolute right-2 top-2 text-destructive hover:text-destructive/80 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -264,7 +319,10 @@ const Assignment = () => {
                 <Button 
                   variant="secondary" 
                   className="w-full"
-                  onClick={() => navigate('/essay-checker')}
+                  onClick={() => {
+                    if (id) sessionStorage.setItem('currentAssignmentId', id);
+                    navigate('/essay-checker');
+                  }}
                 >
                   {t('assignment.openChecker')}
                 </Button>
@@ -312,6 +370,7 @@ const Assignment = () => {
               disabled={!uploadedEssay}
               onClick={() => {
                 setShowUploadModal(false);
+                if (id) sessionStorage.setItem('currentAssignmentId', id);
                 navigate('/essay-checker');
               }}
             >
@@ -419,3 +478,4 @@ const Assignment = () => {
 };
 
 export default Assignment;
+
