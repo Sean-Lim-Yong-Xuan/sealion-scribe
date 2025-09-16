@@ -67,7 +67,7 @@ Provide constructive, specific feedback that helps the student improve their wri
 
     // Create the command for Sealion model (adjust model ID as needed)
     const command = new InvokeModelCommand({
-      modelId: "anthropic.claude-3-sonnet-20240229-v1:0", // Replace with your custom Sealion model ID
+      modelId: "arn:aws:bedrock:us-east-1:116163866269:imported-model/d48xlm95eq5l",
       contentType: "application/json",
       accept: "application/json",
       body: JSON.stringify({
