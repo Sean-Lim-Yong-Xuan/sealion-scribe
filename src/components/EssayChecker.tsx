@@ -5,6 +5,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Globe, Settings, User, Home } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+
+const client = new BedrockRuntimeClient({ region: "us-east-1" });
+
+    async function invokeCustomModel(prompt) {
+      const modelId = "arn:aws:bedrock:us-east-1:116163866269:imported-model/d48xlm95eq5l";
+      const input = JSON.stringify({
+        prompt: prompt,
+        max_tokens_to_sample: 200,
+      });
+
+      const command = new InvokeModelCommand({
+        body: input,
+        contentType: "application/json",
+        accept: "application/json",
+        modelId: modelId,
+      });
+
+      try {
+        const response = await client.send(command);
+        const decodedResponse = new TextDecoder().decode(response.body);
+        const parsedResponse = JSON.parse(decodedResponse);
+        // Process the parsedResponse according to your model's output format
+        return parsedResponse.completion; // Example
+      } catch (error) {
+        console.error("Error invoking custom model:", error);
+        throw error;
+      }
+    }
 
 interface FeedbackItem {
   id: string; // translation key
