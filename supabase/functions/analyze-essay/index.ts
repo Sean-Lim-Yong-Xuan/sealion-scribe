@@ -26,13 +26,18 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Bedrock client
+    // Initialize Bedrock client with explicit configuration for Deno environment
     const bedrockClient = new BedrockRuntimeClient({
       region: Deno.env.get('AWS_REGION') || 'us-east-1',
       credentials: {
         accessKeyId: Deno.env.get('AWS_ACCESS_KEY_ID')!,
         secretAccessKey: Deno.env.get('AWS_SECRET_ACCESS_KEY')!,
       },
+      // Prevent SDK from trying to load config files
+      maxAttempts: 3,
+      requestHandler: undefined, // Use default fetch-based handler
+      // Disable file-based configuration loading
+      disableHostPrefix: true,
     });
 
     // Prepare the prompt for essay analysis
