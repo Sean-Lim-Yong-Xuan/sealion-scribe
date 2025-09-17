@@ -224,37 +224,6 @@ The primary argument against allowing prisoners the right to vote, which often i
             <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">{t('checker.back')}</span>
           </button>
           
-          {/* AWS Credentials Section */}
-          <div className="mb-4 p-4 bg-muted rounded-lg space-y-3">
-            <h3 className="text-sm font-medium text-foreground">AWS Credentials</h3>
-            <div className="grid grid-cols-1 gap-3">
-              <input
-                type="text"
-                placeholder="AWS Access Key ID"
-                value={awsCredentials.accessKeyId}
-                onChange={(e) => setAwsCredentials(prev => ({ ...prev, accessKeyId: e.target.value }))}
-                className="px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground"
-              />
-              <input
-                type="password"
-                placeholder="AWS Secret Access Key"
-                value={awsCredentials.secretAccessKey}
-                onChange={(e) => setAwsCredentials(prev => ({ ...prev, secretAccessKey: e.target.value }))}
-                className="px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground"
-              />
-              <select
-                value={awsCredentials.region}
-                onChange={(e) => setAwsCredentials(prev => ({ ...prev, region: e.target.value }))}
-                className="px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground"
-              >
-                <option value="us-east-1">US East (N. Virginia)</option>
-                <option value="us-west-2">US West (Oregon)</option>
-                <option value="eu-west-1">Europe (Ireland)</option>
-                <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
-              </select>
-            </div>
-          </div>
-          
           <div className="mb-4">
             <Textarea
               value={essay}
