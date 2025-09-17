@@ -1,82 +1,11 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { crypto } from "https://deno.land/std@0.208.0/crypto/mod.ts";
+import { BedrockRuntimeClient, InvokeModelCommand } from "https://esm.sh/@aws-sdk/client-bedrock-runtime@3.888.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// AWS Signature V4 signing function
-async function sign(key: Uint8Array, message: string): Promise<Uint8Array> {
-  const encoder = new TextEncoder();
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    key,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(message));
-  return new Uint8Array(signature);
-}
-
-async function createSignatureKey(secretKey: string, dateStamp: string, regionName: string, serviceName: string): Promise<Uint8Array> {
-  const encoder = new TextEncoder();
-  const kDate = await sign(encoder.encode(`AWS4${secretKey}`), dateStamp);
-  const kRegion = await sign(kDate, regionName);
-  const kService = await sign(kRegion, serviceName);
-  const kSigning = await sign(kService, 'aws4_request');
-  return kSigning;
-}
-
-async function callBedrockAPI(region: string, accessKeyId: string, secretAccessKey: string, modelId: string, requestBody: string): Promise<any> {
-  const service = 'bedrock-runtime';
-  const host = `bedrock-runtime.${region}.amazonaws.com`;
-  const endpoint = `https://${host}/model/${encodeURIComponent(modelId)}/invoke`;
-  
-  const now = new Date();
-  const amzDate = now.toISOString().replace(/[:\-]|\.\d{3}/g, '');
-  const dateStamp = amzDate.substr(0, 8);
-  
-  const canonicalHeaders = `content-type:application/json\nhost:${host}\nx-amz-date:${amzDate}\n`;
-  const signedHeaders = 'content-type;host;x-amz-date';
-  
-  const encoder = new TextEncoder();
-  const payloadHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(requestBody))))
-    .map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  const canonicalRequest = `POST\n/model/${encodeURIComponent(modelId)}/invoke\n\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
-  
-  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
-  const stringToSign = `AWS4-HMAC-SHA256\n${amzDate}\n${credentialScope}\n` +
-    Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(canonicalRequest))))
-      .map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  const signingKey = await createSignatureKey(secretAccessKey, dateStamp, region, service);
-  const signature = Array.from(await sign(signingKey, stringToSign))
-    .map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  const authorizationHeader = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
-  
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Host': host,
-      'X-Amz-Date': amzDate,
-      'Authorization': authorizationHeader,
-    },
-    body: requestBody,
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Bedrock API error: ${response.status} ${response.statusText} - ${errorText}`);
-  }
-  
-  return await response.json();
-}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -97,9 +26,14 @@ serve(async (req) => {
       );
     }
 
-    const region = Deno.env.get('AWS_REGION') || 'us-east-1';
-    const accessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID')!;
-    const secretAccessKey = Deno.env.get('AWS_SECRET_ACCESS_KEY')!;
+    // Initialize Bedrock client
+    const bedrockClient = new BedrockRuntimeClient({
+      region: Deno.env.get('AWS_REGION') || 'us-east-1',
+      credentials: {
+        accessKeyId: Deno.env.get('AWS_ACCESS_KEY_ID')!,
+        secretAccessKey: Deno.env.get('AWS_SECRET_ACCESS_KEY')!,
+      },
+    });
 
     // Prepare the prompt for essay analysis
     const analysisPrompt = `Please analyze the following essay and provide detailed feedback. Return your response in the following JSON format:
@@ -131,35 +65,36 @@ Focus on:
 
 Provide constructive, specific feedback that helps the student improve their writing.`;
 
-    // Create the request body for the Sealion model
-    const requestBody = JSON.stringify({
-      anthropic_version: "bedrock-2023-05-31",
-      max_tokens: 2000,
-      messages: [
-        {
-          role: "user",
-          content: analysisPrompt
-        }
-      ]
+    // Create the command for Sealion model (adjust model ID as needed)
+    const command = new InvokeModelCommand({
+      modelId: "arn:aws:bedrock:us-east-1:116163866269:imported-model/d48xlm95eq5l",
+      contentType: "application/json",
+      accept: "application/json",
+      body: JSON.stringify({
+        anthropic_version: "bedrock-2023-05-31",
+        max_tokens: 2000,
+        messages: [
+          {
+            role: "user",
+            content: analysisPrompt
+          }
+        ]
+      })
     });
 
     console.log('Invoking Bedrock model for essay analysis...');
     
-    // Call the Bedrock API directly
-    const response = await callBedrockAPI(
-      region,
-      accessKeyId,
-      secretAccessKey,
-      "arn:aws:bedrock:us-east-1:116163866269:imported-model/d48xlm95eq5l",
-      requestBody
-    );
+    // Invoke the model
+    const response = await bedrockClient.send(command);
     
-    console.log('Bedrock response:', response);
+    // Parse the response
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+    console.log('Bedrock response:', responseBody);
 
     let analysisResult;
     try {
       // Extract the content from Claude's response
-      const content = response.content[0].text;
+      const content = responseBody.content[0].text;
       
       // Try to parse the JSON response from the model
       const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -171,7 +106,7 @@ Provide constructive, specific feedback that helps the student improve their wri
     } catch (parseError) {
       console.error('Error parsing analysis result:', parseError);
       // Fallback: create structured feedback from raw text
-      const content = response.content[0].text;
+      const content = responseBody.content[0].text;
       analysisResult = {
         positiveFeedback: [
           "Analysis completed successfully",
