@@ -3,95 +3,70 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Globe, Settings, User, Home } from "lucide-react";
+import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Globe, Settings, User, Home, AlertCircle } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
-
-// AWS Bedrock integration using AWS SDK directly
-async function analyzeEssayWithBedrock(essayText: string, awsCredentials: { accessKeyId: string; secretAccessKey: string; region: string }) {
-  try {
-    const client = new BedrockRuntimeClient({
-      region: awsCredentials.region,
-      credentials: {
-        accessKeyId: awsCredentials.accessKeyId,
-        secretAccessKey: awsCredentials.secretAccessKey,
-      },
-    });
-
-    const analysisPrompt = `Please analyze the following essay and provide detailed feedback. Return your response in the following JSON format:
-
-{
-  "positiveFeedback": [
-    "List specific positive aspects of the essay",
-    "Such as strong arguments, good structure, clear writing",
-    "Each item should be a complete sentence describing what was done well"
-  ],
-  "negativeFeedback": [
-    "List specific areas for improvement",
-    "Such as unclear arguments, weak evidence, grammatical issues",
-    "Each item should be a complete sentence describing what needs work"
-  ]
-}
-
-Essay to analyze:
-"""
-${essayText}
-"""
-
-Focus on:
-- Argument strength and logical flow
-- Evidence and supporting details
-- Writing clarity and organization
-- Grammar and style
-- Thesis development and conclusion
-
-Provide constructive, specific feedback that helps the student improve their writing.`;
-
-    const requestBody = JSON.stringify({
-      anthropic_version: "bedrock-2023-05-31",
-      max_tokens: 2000,
-      messages: [
-        {
-          role: "user",
-          content: analysisPrompt
-        }
-      ]
-    });
-
-    const command = new InvokeModelCommand({
-      modelId: "arn:aws:bedrock:us-east-1:116163866269:imported-model/d48xlm95eq5l",
-      body: requestBody,
-      contentType: "application/json",
-    });
-
-    const response = await client.send(command);
-    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    
-    const content = responseBody.content[0].text;
-    
-    // Try to parse the JSON response from the model
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const analysisResult = JSON.parse(jsonMatch[0]);
-      return {
-        positiveFeedback: analysisResult.positiveFeedback || [],
-        negativeFeedback: analysisResult.negativeFeedback || [],
-        success: true
-      };
-    } else {
-      throw new Error('No JSON found in response');
-    }
-  } catch (error) {
-    console.error('Error analyzing essay with Bedrock:', error);
-    throw error;
-  }
-}
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface FeedbackItem {
   id: string;
   type: 'positive' | 'negative';
   text?: string; // For dynamic feedback from AI analysis
+}
+
+// Secure function to call Supabase Edge Function (which handles AWS SDK internally)
+async function analyzeEssaySecurely(essayText: string) {
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing. Please check environment variables.');
+    }
+
+    console.log('Calling Supabase Edge Function for essay analysis...');
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/analyze-essay`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': supabaseKey,
+      },
+      body: JSON.stringify({ essay: essayText }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error('Supabase Edge Function error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
+      
+      throw new Error(
+        errorData?.error || 
+        errorData?.details || 
+        `HTTP ${response.status}: ${response.statusText}`
+      );
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Analysis failed for unknown reason');
+    }
+
+    return {
+      positiveFeedback: result.positiveFeedback || [],
+      negativeFeedback: result.negativeFeedback || [],
+      success: true
+    };
+
+  } catch (error) {
+    console.error('Error calling Supabase Edge Function:', error);
+    throw error;
+  }
 }
 
 const EssayChecker = () => {
@@ -120,11 +95,8 @@ The primary argument against allowing prisoners the right to vote, which often i
   ]);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [awsCredentials, setAwsCredentials] = useState({
-    accessKeyId: '',
-    secretAccessKey: '',
-    region: 'us-east-1'
-  });
+  const [error, setError] = useState<string | null>(null);
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
 
   // Load uploaded essay if available
   useEffect(() => {
@@ -136,21 +108,23 @@ The primary argument against allowing prisoners the right to vote, which often i
     }
   }, []);
 
+  // SECURE: Analysis function that calls Supabase Edge Function
   const handleAnalyze = async () => {
     if (!essay.trim()) {
       toast.error('Please enter an essay to analyze');
       return;
     }
 
-    if (!awsCredentials.accessKeyId || !awsCredentials.secretAccessKey) {
-      toast.error('Please enter your AWS credentials');
-      return;
-    }
-
     setIsAnalyzing(true);
+    setError(null);
+    
     try {
-      // Call the Bedrock AI model directly via AWS SDK
-      const analysisResult = await analyzeEssayWithBedrock(essay, awsCredentials);
+      console.log('Starting essay analysis...');
+      
+      // Call the secure Supabase Edge Function
+      const analysisResult = await analyzeEssaySecurely(essay);
+      
+      console.log('Analysis result received:', analysisResult);
       
       if (analysisResult.positiveFeedback && analysisResult.negativeFeedback) {
         // Convert analysis results to feedback format
@@ -169,12 +143,18 @@ The primary argument against allowing prisoners the right to vote, which often i
         
         // Update feedback state with real analysis results
         setFeedback(newFeedback);
+        setHasAnalyzed(true);
+        
+        toast.success('Essay analysis completed successfully!');
+      } else {
+        throw new Error('Invalid analysis result format');
       }
       
-      toast.success('Essay analysis completed!');
     } catch (error) {
       console.error('Analysis failed:', error);
-      toast.error('Analysis failed. Please check your AWS credentials and try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(errorMessage);
+      toast.error('Analysis failed. Please check the error details and try again.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -199,7 +179,11 @@ The primary argument against allowing prisoners the right to vote, which often i
       <header className="bg-primary text-primary-foreground px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Home className="w-6 h-6 cursor-pointer" onClick={() => navigate('/dashboard')} aria-label="Go to Dashboard" />
+            <Home 
+              className="w-6 h-6 cursor-pointer hover:text-accent transition-colors" 
+              onClick={() => navigate('/dashboard')} 
+              aria-label="Go to Dashboard" 
+            />
             <h1 className="text-xl font-semibold">Checkit ✓</h1>
           </div>
           <div className="flex items-center gap-4">
@@ -214,15 +198,31 @@ The primary argument against allowing prisoners the right to vote, which often i
       {/* Main Content */}
       <div className="flex h-[calc(100vh-80px)]">
         {/* Essay Input Section */}
-  <div className="flex-1 p-6 border-r border-border flex flex-col">
-          {/* FIXED: Back button - Now properly navigates to Assignment page with improved styling */}
+        <div className="flex-1 p-6 border-r border-border flex flex-col">
+          {/* Back button */}
           <button 
             onClick={handleBackToAssignment}
             className="mb-4 flex items-center gap-2 bg-transparent border-none p-2 -ml-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer group"
           >
             <ChevronLeft className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-            <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">{t('checker.back')}</span>
+            <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">
+              {t('checker.back')}
+            </span>
           </button>
+          
+          {/* Error Display */}
+          {error && (
+            <Alert className="mb-4 border-destructive bg-destructive/10">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <AlertDescription className="text-destructive">
+                <strong>Analysis Error:</strong> {error}
+                <br />
+                <span className="text-sm text-muted-foreground mt-1 block">
+                  Please check the Supabase Edge Function logs for more details.
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
           
           <div className="mb-4">
             <Textarea
@@ -236,49 +236,78 @@ The primary argument against allowing prisoners the right to vote, which often i
           <div className="flex justify-center mt-auto pt-4">
             <Button 
               onClick={handleAnalyze}
-              disabled={isAnalyzing || !essay.trim() || !awsCredentials.accessKeyId || !awsCredentials.secretAccessKey}
+              disabled={isAnalyzing || !essay.trim()}
               className="px-8"
             >
-              {isAnalyzing ? t('checker.analyze') + '...' : t('checker.analyze')}
+              {isAnalyzing ? `${t('checker.analyze')}...` : t('checker.analyze')}
             </Button>
           </div>
+
+          {/* Analysis Status */}
+          {isAnalyzing && (
+            <div className="mt-4 text-center text-sm text-muted-foreground">
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                Analyzing essay with AI model...
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Feedback Section */}
         <div className="w-96 p-6 overflow-y-auto">
-          {/* Positive Feedback */}
-          <Card className="p-4 mb-6">
-            <h2 className="text-lg font-semibold text-success mb-4 flex items-center gap-2">
-              {t('checker.feedback.positive')}
-            </h2>
-            <div className="space-y-3">
-              {positiveFeedback.map((item) => (
-                <div key={item.id} className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-card-foreground leading-relaxed">
-                    {item.text || t(item.id)}
-                  </p>
+          {!hasAnalyzed && !isAnalyzing && !error && (
+            <div className="flex items-center justify-center h-full text-center">
+              <div>
+                <div className="text-muted-foreground mb-2">
+                  <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 </div>
-              ))}
+                <p className="text-sm text-muted-foreground">
+                  Click "Analyze Essay" to get AI-powered feedback using your custom Bedrock model.
+                </p>
+              </div>
             </div>
-          </Card>
+          )}
+
+          {/* Positive Feedback */}
+          {positiveFeedback.length > 0 && (
+            <Card className="p-4 mb-6">
+              <h2 className="text-lg font-semibold text-success mb-4 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                {t('checker.feedback.positive')}
+              </h2>
+              <div className="space-y-3">
+                {positiveFeedback.map((item) => (
+                  <div key={item.id} className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-card-foreground leading-relaxed">
+                      {item.text || t(item.id)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
           {/* Negative Feedback */}
-          <Card className="p-4">
-            <h2 className="text-lg font-semibold text-destructive mb-4 flex items-center gap-2">
-              {t('checker.feedback.negative')}
-            </h2>
-            <div className="space-y-3">
-              {negativeFeedback.map((item) => (
-                <div key={item.id} className="flex items-start gap-2">
-                  <XCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-card-foreground leading-relaxed">
-                    {item.text || t(item.id)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </Card>
+          {negativeFeedback.length > 0 && (
+            <Card className="p-4">
+              <h2 className="text-lg font-semibold text-destructive mb-4 flex items-center gap-2">
+                <XCircle className="w-5 h-5" />
+                {t('checker.feedback.negative')}
+              </h2>
+              <div className="space-y-3">
+                {negativeFeedback.map((item) => (
+                  <div key={item.id} className="flex items-start gap-2">
+                    <XCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-card-foreground leading-relaxed">
+                      {item.text || t(item.id)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
       </div>
 
