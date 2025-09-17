@@ -6,29 +6,84 @@ import { Card } from "@/components/ui/card";
 import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Globe, Settings, User, Home } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
-// AWS Bedrock integration for Sealion AI model via Supabase Edge Function
-async function analyzeEssayWithSealion(essayText: string) {
+// AWS Bedrock integration using AWS SDK directly
+async function analyzeEssayWithBedrock(essayText: string, awsCredentials: { accessKeyId: string; secretAccessKey: string; region: string }) {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
-    // Call the Supabase edge function that handles Bedrock integration
-    const { data, error } = await supabase.functions.invoke('analyze-essay', {
-      body: { essay: essayText },
+    const client = new BedrockRuntimeClient({
+      region: awsCredentials.region,
+      credentials: {
+        accessKeyId: awsCredentials.accessKeyId,
+        secretAccessKey: awsCredentials.secretAccessKey,
+      },
     });
 
-    if (error) {
-      console.error('Supabase function error:', error);
-      throw new Error(`Analysis failed: ${error.message}`);
-    }
+    const analysisPrompt = `Please analyze the following essay and provide detailed feedback. Return your response in the following JSON format:
 
-    if (!data || !data.success) {
-      throw new Error('Analysis failed: Invalid response from server');
-    }
+{
+  "positiveFeedback": [
+    "List specific positive aspects of the essay",
+    "Such as strong arguments, good structure, clear writing",
+    "Each item should be a complete sentence describing what was done well"
+  ],
+  "negativeFeedback": [
+    "List specific areas for improvement",
+    "Such as unclear arguments, weak evidence, grammatical issues",
+    "Each item should be a complete sentence describing what needs work"
+  ]
+}
 
-    return data;
+Essay to analyze:
+"""
+${essayText}
+"""
+
+Focus on:
+- Argument strength and logical flow
+- Evidence and supporting details
+- Writing clarity and organization
+- Grammar and style
+- Thesis development and conclusion
+
+Provide constructive, specific feedback that helps the student improve their writing.`;
+
+    const requestBody = JSON.stringify({
+      anthropic_version: "bedrock-2023-05-31",
+      max_tokens: 2000,
+      messages: [
+        {
+          role: "user",
+          content: analysisPrompt
+        }
+      ]
+    });
+
+    const command = new InvokeModelCommand({
+      modelId: "arn:aws:bedrock:us-east-1:116163866269:imported-model/d48xlm95eq5l",
+      body: requestBody,
+      contentType: "application/json",
+    });
+
+    const response = await client.send(command);
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+    
+    const content = responseBody.content[0].text;
+    
+    // Try to parse the JSON response from the model
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const analysisResult = JSON.parse(jsonMatch[0]);
+      return {
+        positiveFeedback: analysisResult.positiveFeedback || [],
+        negativeFeedback: analysisResult.negativeFeedback || [],
+        success: true
+      };
+    } else {
+      throw new Error('No JSON found in response');
+    }
   } catch (error) {
-    console.error('Error analyzing essay:', error);
+    console.error('Error analyzing essay with Bedrock:', error);
     throw error;
   }
 }
@@ -65,6 +120,11 @@ The primary argument against allowing prisoners the right to vote, which often i
   ]);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [awsCredentials, setAwsCredentials] = useState({
+    accessKeyId: '',
+    secretAccessKey: '',
+    region: 'us-east-1'
+  });
 
   // Load uploaded essay if available
   useEffect(() => {
@@ -82,10 +142,15 @@ The primary argument against allowing prisoners the right to vote, which often i
       return;
     }
 
+    if (!awsCredentials.accessKeyId || !awsCredentials.secretAccessKey) {
+      toast.error('Please enter your AWS credentials');
+      return;
+    }
+
     setIsAnalyzing(true);
     try {
-      // Call the Sealion AI model via Supabase edge function
-      const analysisResult = await analyzeEssayWithSealion(essay);
+      // Call the Bedrock AI model directly via AWS SDK
+      const analysisResult = await analyzeEssayWithBedrock(essay, awsCredentials);
       
       if (analysisResult.positiveFeedback && analysisResult.negativeFeedback) {
         // Convert analysis results to feedback format
@@ -109,7 +174,7 @@ The primary argument against allowing prisoners the right to vote, which often i
       toast.success('Essay analysis completed!');
     } catch (error) {
       console.error('Analysis failed:', error);
-      toast.error('Analysis failed. Please check your AWS Bedrock configuration and try again.');
+      toast.error('Analysis failed. Please check your AWS credentials and try again.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -159,11 +224,42 @@ The primary argument against allowing prisoners the right to vote, which often i
             <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">{t('checker.back')}</span>
           </button>
           
+          {/* AWS Credentials Section */}
+          <div className="mb-4 p-4 bg-muted rounded-lg space-y-3">
+            <h3 className="text-sm font-medium text-foreground">AWS Credentials</h3>
+            <div className="grid grid-cols-1 gap-3">
+              <input
+                type="text"
+                placeholder="AWS Access Key ID"
+                value={awsCredentials.accessKeyId}
+                onChange={(e) => setAwsCredentials(prev => ({ ...prev, accessKeyId: e.target.value }))}
+                className="px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground"
+              />
+              <input
+                type="password"
+                placeholder="AWS Secret Access Key"
+                value={awsCredentials.secretAccessKey}
+                onChange={(e) => setAwsCredentials(prev => ({ ...prev, secretAccessKey: e.target.value }))}
+                className="px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground"
+              />
+              <select
+                value={awsCredentials.region}
+                onChange={(e) => setAwsCredentials(prev => ({ ...prev, region: e.target.value }))}
+                className="px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground"
+              >
+                <option value="us-east-1">US East (N. Virginia)</option>
+                <option value="us-west-2">US West (Oregon)</option>
+                <option value="eu-west-1">Europe (Ireland)</option>
+                <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+              </select>
+            </div>
+          </div>
+          
           <div className="mb-4">
             <Textarea
               value={essay}
               onChange={(e) => setEssay(e.target.value)}
-              className="min-h-[500px] resize-none text-sm leading-relaxed"
+              className="min-h-[400px] resize-none text-sm leading-relaxed"
               placeholder="Paste your essay here for analysis..."
             />
           </div>
@@ -171,7 +267,7 @@ The primary argument against allowing prisoners the right to vote, which often i
           <div className="flex justify-center mt-auto pt-4">
             <Button 
               onClick={handleAnalyze}
-              disabled={isAnalyzing || !essay.trim()}
+              disabled={isAnalyzing || !essay.trim() || !awsCredentials.accessKeyId || !awsCredentials.secretAccessKey}
               className="px-8"
             >
               {isAnalyzing ? t('checker.analyze') + '...' : t('checker.analyze')}
