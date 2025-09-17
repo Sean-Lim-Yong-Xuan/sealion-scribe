@@ -88,7 +88,7 @@ const EssayChecker = () => {
   const { t } = useI18n();
 
   const [essay, setEssay] = useState(
-    `The history of our nation is fraught with battles over people's rights, and the right to vote is foremost among them. ...`
+    `Type your essay here...`
   );
 
   // Start with an empty feedback array instead of placeholders
