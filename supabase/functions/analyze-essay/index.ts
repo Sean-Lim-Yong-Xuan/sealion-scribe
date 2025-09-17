@@ -31,7 +31,7 @@ async function createSignatureKey(secretKey: string, dateStamp: string, regionNa
 }
 
 async function callBedrockAPI(region: string, accessKeyId: string, secretAccessKey: string, modelId: string, requestBody: string): Promise<any> {
-  const service = 'bedrock';
+  const service = 'bedrock-runtime';
   const host = `bedrock-runtime.${region}.amazonaws.com`;
   const endpoint = `https://${host}/model/${encodeURIComponent(modelId)}/invoke`;
   
