@@ -17,8 +17,8 @@ interface FeedbackItem {
 // Secure function to call Supabase Edge Function (which handles AWS SDK internally)
 async function analyzeEssaySecurely(essayText: string) {
   try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseUrl = 'https://jbghklhpxzspqsfnxfux.supabase.co';//import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpiZ2hrbGhweHpzcHFzZm54ZnV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMTQwMTMsImV4cCI6MjA3MzU5MDAxM30.KvxHA8wgImy7x1NBcxKMk6WhIgXEePlcpo8QNNtBFWE';//import.meta.env.VITE_SUPABASE_ANON_KEY;
     
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Supabase configuration missing. Please check environment variables.');
