@@ -87,13 +87,6 @@ const EssayChecker = () => {
   const navigate = useNavigate();
   const { t } = useI18n();
 
- <Textarea
-  value={essay}
-  onChange={(e) => setEssay(e.target.value)}
-  className="min-h-[400px] resize-none text-sm leading-relaxed placeholder:text-muted-foreground"
-  placeholder="Enter your essay here..."
-/>
-
   // Start with an empty feedback array instead of placeholders
   const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
 
