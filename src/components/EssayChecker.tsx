@@ -87,9 +87,12 @@ const EssayChecker = () => {
   const navigate = useNavigate();
   const { t } = useI18n();
 
-  const [essay, setEssay] = useState(
-    `The history of our nation is fraught with battles over people's rights, and the right to vote is foremost among them. ...`
-  );
+ <Textarea
+  value={essay}
+  onChange={(e) => setEssay(e.target.value)}
+  className="min-h-[400px] resize-none text-sm leading-relaxed placeholder:text-muted-foreground"
+  placeholder="Enter your essay here..."
+/>
 
   // Start with an empty feedback array instead of placeholders
   const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
