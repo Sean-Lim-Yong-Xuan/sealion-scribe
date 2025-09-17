@@ -29,7 +29,7 @@ serve(async (req) => {
       },
     });
 
-    const analysisPrompt = `Please analyze the following essay and provide detailed feedback... (your same prompt here)`;
+    const analysisPrompt = `Please analyze the following essay and provide detailed feedback`;
 
     const command = new InvokeModelCommand({
       modelId: "arn:aws:bedrock:us-east-1:116163866269:imported-model/d48xlm95eq5l",
