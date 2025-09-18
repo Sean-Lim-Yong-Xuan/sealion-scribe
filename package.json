@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"
+    "bedrock:proxy": "node ./server/local-bedrock-proxy.js"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.888.0",
